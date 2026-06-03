@@ -1,0 +1,5 @@
+services:
+  print-server:
+    build: .
+    image: print-server:dev
+    pull_policy: never

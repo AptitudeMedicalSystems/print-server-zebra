@@ -1,7 +1,7 @@
 services:
   print-server:
-    build: .
-    image: print-server:0.1.0
+    image: ghcr.io/aptitudemedicalsystems/print-server-zebra:${PRINT_SERVER_VERSION:-0.2.0}
+    pull_policy: always
     container_name: print-server
     restart: unless-stopped
     network_mode: host
@@ -23,7 +23,6 @@ services:
       TEMPLATES_DIR: "/data/templates"
       PREVIEW_ENABLED: "${PREVIEW_ENABLED:-true}"
       LABELARY_URL: "${LABELARY_URL:-https://api.labelary.com}"
-    # need lp group access to /dev/usb/lp0; simplest = root
     user: "0:0"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8088/healthz',timeout=2).status==200 else 1)"]
