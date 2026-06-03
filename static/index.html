@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LAN Print Server</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --accent: #60a5fa;
+    --ok: #34d399;
+    --err: #f87171;
+    --warn: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  a { color: var(--accent); }
+  code, pre, textarea, input[type=text] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; letter-spacing: 0.3px; }
+  h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+  .top { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .dot.err { background: var(--err); }
+  .badge { font-size: 12px; color: var(--muted); }
+  .badge b { color: var(--text); font-weight: 500; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { padding: 10px 16px; background: none; border: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; font: inherit; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; font-size: 13px;
+  }
+  textarea { resize: vertical; min-height: 160px; line-height: 1.45; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button.primary {
+    background: var(--accent); color: #0b1220; border: none; padding: 9px 16px; border-radius: 6px;
+    cursor: pointer; font-weight: 600; font-size: 13px;
+  }
+  button.primary:hover { filter: brightness(1.1); }
+  button.ghost {
+    background: transparent; color: var(--text); border: 1px solid var(--border); padding: 8px 12px;
+    border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  button.ghost:hover { background: var(--panel2); }
+  button.danger { background: transparent; color: var(--err); border: 1px solid var(--border); }
+  .pane { display: none; }
+  .pane.active { display: block; }
+  .field-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 600px) { .field-grid { grid-template-columns: 1fr; } }
+  .field-help { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .required::after { content: " *"; color: var(--err); }
+  .table-editor { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table-editor th, .table-editor td { border: 1px solid var(--border); padding: 6px; }
+  .table-editor th { background: var(--panel2); font-weight: 500; color: var(--muted); text-align: left; }
+  .table-editor input { background: transparent; border: none; padding: 4px; width: 100%; }
+  .table-editor input:focus { outline: 1px solid var(--accent); }
+  .toolbar { display: flex; gap: 8px; margin: 10px 0; }
+  .status-log { background: #0b0e13; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-family: ui-monospace, monospace; font-size: 12px; max-height: 140px; overflow: auto; }
+  .status-log .ok { color: var(--ok); }
+  .status-log .err { color: var(--err); }
+  .status-log .meta { color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); background: var(--panel2); color: var(--muted); }
+  .pill.ok { color: var(--ok); border-color: rgba(52,211,153,0.4); }
+  .pill.err { color: var(--err); border-color: rgba(248,113,113,0.4); }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  pre.preview { background: #0b0e13; border: 1px solid var(--border); border-radius: 6px; padding: 10px; max-height: 240px; overflow: auto; font-size: 11px; color: var(--muted); }
+  .preview-pane { margin-top: 14px; padding: 12px; background: #0b0e13; border: 1px solid var(--border); border-radius: 6px; text-align: center; min-height: 80px; display: none; }
+  .preview-pane.active { display: block; }
+  .preview-pane img { max-width: 100%; max-height: 420px; border: 1px solid var(--border); background: white; image-rendering: pixelated; }
+  .preview-pane .meta { color: var(--muted); font-size: 11px; margin-top: 6px; }
+  .preview-stack { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .preview-stack figure { margin: 0; }
+  .preview-stack figcaption { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .preview-disabled { color: var(--muted); font-size: 12px; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>LAN Print Server</h1>
+      <div class="badge" id="endpoint"></div>
+    </div>
+    <div class="grow"></div>
+    <div class="row">
+      <span class="dot" id="conn-dot"></span>
+      <div class="badge" id="conn-info">loading…</div>
+    </div>
+    <div>
+      <label for="token">API token (optional)</label>
+      <input type="text" id="token" placeholder="bearer token" style="width:240px" />
+    </div>
+    <button class="ghost" id="refresh-info">Refresh</button>
+    <button class="ghost" id="query-status">~HQES</button>
+  </div>
+
+  <div class="panel">
+    <h2>Printer</h2>
+    <div class="row" id="printer-summary"></div>
+    <div class="status-log" id="log"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="tpl">Template</button>
+    <button class="tab" data-tab="table">Table</button>
+    <button class="tab" data-tab="text">Text + Barcode</button>
+    <button class="tab" data-tab="raw">Raw ZPL</button>
+    <button class="tab" data-tab="upload">Upload template</button>
+  </div>
+
+  <!-- Template tab -->
+  <div class="pane active" id="pane-tpl">
+    <div class="panel">
+      <div class="row" style="margin-bottom: 12px;">
+        <div class="grow">
+          <label for="tpl-select">Template</label>
+          <select id="tpl-select"></select>
+        </div>
+        <div>
+          <label for="tpl-copies">Copies</label>
+          <input type="number" id="tpl-copies" value="1" min="1" max="99" style="width: 100px;" />
+        </div>
+      </div>
+      <div id="tpl-fields" class="field-grid"></div>
+      <div class="toolbar">
+        <button class="primary" id="tpl-print">Print template</button>
+        <button class="ghost preview-btn" data-target="tpl">Preview</button>
+        <button class="ghost" id="tpl-defaults">Fill defaults</button>
+      </div>
+      <div class="preview-pane" id="preview-tpl"></div>
+      <details>
+        <summary>Template raw body</summary>
+        <pre class="preview" id="tpl-body"></pre>
+      </details>
+    </div>
+  </div>
+
+  <!-- Table tab -->
+  <div class="pane" id="pane-table">
+    <div class="panel">
+      <div class="row" style="margin-bottom: 12px;">
+        <div class="grow">
+          <label for="tbl-title">Title</label>
+          <input type="text" id="tbl-title" placeholder="optional" />
+        </div>
+        <div>
+          <label for="tbl-font">Body font height</label>
+          <input type="number" id="tbl-font" value="22" min="12" max="60" style="width: 120px;" />
+        </div>
+        <div>
+          <label for="tbl-copies">Copies</label>
+          <input type="number" id="tbl-copies" value="1" min="1" max="99" style="width: 100px;" />
+        </div>
+        <div>
+          <label for="tbl-grid">Grid</label>
+          <select id="tbl-grid" style="width: 120px;">
+            <option value="true" selected>show</option>
+            <option value="false">hide</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Columns</label>
+      <table class="table-editor" id="cols-table">
+        <thead><tr><th>header</th><th>key</th><th>width (mm or dots)</th><th>align</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="toolbar">
+        <button class="ghost" id="add-col">+ column</button>
+      </div>
+
+      <label style="margin-top: 12px;">Rows</label>
+      <table class="table-editor" id="rows-table">
+        <thead><tr id="rows-head"></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="toolbar">
+        <button class="ghost" id="add-row">+ row</button>
+        <button class="ghost" id="clear-rows">clear</button>
+        <div class="grow"></div>
+        <button class="primary" id="tbl-print">Print table</button>
+        <button class="ghost preview-btn" data-target="table">Preview</button>
+      </div>
+      <div class="preview-pane" id="preview-table"></div>
+    </div>
+  </div>
+
+  <!-- Text tab -->
+  <div class="pane" id="pane-text">
+    <div class="panel">
+      <label for="txt-text">Text</label>
+      <textarea id="txt-text" rows="3" placeholder="Anything..."></textarea>
+      <div class="row" style="margin-top: 12px;">
+        <div class="grow">
+          <label for="txt-barcode">Barcode value (Code128, optional)</label>
+          <input type="text" id="txt-barcode" placeholder="e.g. SN-12345" />
+        </div>
+        <div>
+          <label for="txt-fonth">Font height</label>
+          <input type="number" id="txt-fonth" value="30" min="12" max="80" style="width: 120px;" />
+        </div>
+        <div>
+          <label for="txt-copies">Copies</label>
+          <input type="number" id="txt-copies" value="1" min="1" max="99" style="width: 100px;" />
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="txt-print">Print</button>
+        <button class="ghost preview-btn" data-target="text">Preview</button>
+      </div>
+      <div class="preview-pane" id="preview-text"></div>
+    </div>
+  </div>
+
+  <!-- Raw ZPL tab -->
+  <div class="pane" id="pane-raw">
+    <div class="panel">
+      <label for="raw-zpl">Raw ZPL</label>
+      <textarea id="raw-zpl" rows="14" spellcheck="false">^XA
+^CI28
+^PW406
+^LL406
+^FO20,20^A0N,40,40^FDFree ZPL test^FS
+^FO20,80^BCN,90,Y,N,N^FDABC12345^FS
+^XZ</textarea>
+      <div class="row" style="margin-top: 12px;">
+        <div>
+          <label for="raw-copies">Copies</label>
+          <input type="number" id="raw-copies" value="1" min="1" max="99" style="width: 100px;" />
+        </div>
+        <div class="grow"></div>
+        <button class="primary" id="raw-print">Print raw ZPL</button>
+        <button class="ghost preview-btn" data-target="raw">Preview</button>
+      </div>
+      <div class="preview-pane" id="preview-raw"></div>
+    </div>
+  </div>
+
+  <!-- Upload tab -->
+  <div class="pane" id="pane-upload">
+    <div class="panel">
+      <div class="row" style="margin-bottom: 12px;">
+        <div>
+          <label for="up-name">Template name</label>
+          <input type="text" id="up-name" placeholder="my_label" style="width: 240px;" />
+        </div>
+        <div class="badge" style="align-self: flex-end; padding-bottom: 8px;">
+          [A-Za-z0-9_-]+ — Stored to /data/templates/&lt;name&gt;.zpl
+        </div>
+      </div>
+      <label for="up-body">Body</label>
+      <textarea id="up-body" rows="14" spellcheck="false">;; @label width=50.8mm height=50.8mm
+;; @field name: str required "Label name"
+;; @field code: str required "Barcode value"
+^XA
+^CI28
+^PW406
+^LL406
+^FO20,20^A0N,40,40^FD{{name}}^FS
+^FO20,80^BCN,90,Y,N,N^FD{{code}}^FS
+^XZ</textarea>
+      <div class="toolbar">
+        <button class="primary" id="up-save">Save template</button>
+        <button class="danger" id="up-delete">Delete this template</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs={}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const kid of kids) n.append(kid?.nodeType ? kid : document.createTextNode(kid ?? ""));
+  return n;
+};
+
+const BASE = location.origin;
+$("#endpoint").textContent = BASE;
+
+const tokenInput = $("#token");
+tokenInput.value = localStorage.getItem("print_token") || "";
+tokenInput.addEventListener("change", () => localStorage.setItem("print_token", tokenInput.value));
+
+function authHeaders(json=true) {
+  const h = {};
+  if (json) h["Content-Type"] = "application/json";
+  if (tokenInput.value) h["Authorization"] = `Bearer ${tokenInput.value}`;
+  return h;
+}
+
+function log(msg, cls="") {
+  const box = $("#log");
+  const ts = new Date().toLocaleTimeString();
+  box.insertBefore(el("div", { class: cls }, el("span", { class: "meta" }, `[${ts}] `), msg), box.firstChild);
+}
+
+async function api(path, init={}) {
+  const r = await fetch(BASE + path, init);
+  const text = await r.text();
+  let body;
+  try { body = JSON.parse(text); } catch { body = text; }
+  if (!r.ok) {
+    const msg = (body && body.detail) ? body.detail : `HTTP ${r.status}`;
+    throw new Error(msg);
+  }
+  return body;
+}
+
+let INFO = null;
+let TEMPLATES = [];
+
+async function loadInfo() {
+  try {
+    INFO = await api("/info");
+    TEMPLATES = INFO.templates;
+
+    const p = INFO.printer;
+    $("#conn-dot").className = "dot " + (p.connected ? "ok" : "err");
+    $("#conn-info").innerHTML = p.connected
+      ? `<b>${p.model}</b> @ <b>${p.dpi}dpi</b> · <b>${p.device_path}</b>`
+      : `<b style="color: var(--err);">printer disconnected</b>`;
+
+    const L = INFO.label;
+    $("#printer-summary").innerHTML = `
+      <span class="pill ${p.connected ? "ok" : "err"}">${p.connected ? "online" : "offline"}</span>
+      <span class="pill">${L.width_mm}×${L.height_mm} mm</span>
+      <span class="pill">${L.width_dots}×${L.height_dots} dots</span>
+      <span class="pill">${INFO.charset}</span>
+      <span class="pill">${TEMPLATES.length} template${TEMPLATES.length===1?"":"s"}</span>
+      <span class="pill ${INFO.preview_enabled ? "ok" : ""}">preview ${INFO.preview_enabled ? "on" : "off"}</span>
+    `;
+
+    // Hide preview buttons if disabled server-side
+    document.querySelectorAll(".preview-btn").forEach(b => {
+      b.style.display = INFO.preview_enabled ? "" : "none";
+    });
+
+    renderTemplateSelect();
+    log(`info loaded · ${TEMPLATES.length} templates · preview ${INFO.preview_enabled ? "on" : "off"}`, "ok");
+  } catch (e) {
+    log("info failed: " + e.message, "err");
+  }
+}
+
+// ---- preview pipeline ----
+function buildPreviewPayload(target) {
+  if (target === "tpl") {
+    const tpl = TEMPLATES.find(t => t.name === $("#tpl-select").value);
+    if (!tpl) return null;
+    const data = {};
+    for (const f of tpl.fields) {
+      const inp = document.querySelector(`#tpl-fields input[data-field="${f.name}"]`);
+      if (inp && inp.value !== "") data[f.name] = inp.value;
+    }
+    return { endpoint: "/print/template", body: { template: tpl.name, data, dry_run: true } };
+  }
+  if (target === "table") {
+    return { endpoint: "/print/table", body: {
+      title: $("#tbl-title").value,
+      columns: COLS.map(c => ({ header: c.header, key: c.key || c.header, width: c.width || null, align: c.align || "L" })),
+      rows: ROWS,
+      font_h: parseInt($("#tbl-font").value) || 22,
+      show_grid: $("#tbl-grid").value === "true",
+      dry_run: true,
+    }};
+  }
+  if (target === "text") {
+    return { endpoint: "/print/text", body: {
+      text: $("#txt-text").value,
+      barcode: $("#txt-barcode").value || null,
+      font_h: parseInt($("#txt-fonth").value) || 30,
+      dry_run: true,
+    }};
+  }
+  if (target === "raw") {
+    return { endpoint: "/print/raw", body: { zpl: $("#raw-zpl").value, dry_run: true }};
+  }
+  return null;
+}
+
+let _previewSeq = 0;
+async function doPreview(target) {
+  const pane = $(`#preview-${target}`);
+  const payload = buildPreviewPayload(target);
+  if (!payload) { log("preview: nothing to render", "err"); return; }
+  const seq = ++_previewSeq;
+  pane.classList.add("active");
+  pane.innerHTML = `<div class="meta">rendering…</div>`;
+  try {
+    // 1) dry-run print -> ZPL
+    const rendered = await api(payload.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload.body),
+    });
+    const zpl = rendered.zpl;
+    // 2) POST ZPL to /preview -> {count, images:[dataUrl]}
+    const r = await api("/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ zpl }),
+    });
+    if (seq !== _previewSeq) return;  // superseded
+    const imgs = r.images.map((src, i) => `
+      <figure>
+        <img src="${src}" alt="label ${i+1}" />
+        <figcaption>label ${i+1} / ${r.count}</figcaption>
+      </figure>
+    `).join("");
+    pane.innerHTML = `
+      <div class="preview-stack">${imgs}</div>
+      <div class="meta">${rendered.bytes} B ZPL · ${r.count} label${r.count===1?"":"s"} · via Labelary</div>
+    `;
+    log(`previewed ${target} · ${r.count} label${r.count===1?"":"s"}`, "ok");
+  } catch (e) {
+    pane.innerHTML = `<div class="meta" style="color:var(--err);">preview failed: ${e.message}</div>`;
+    log(`preview ${target} failed: ${e.message}`, "err");
+  }
+}
+
+document.querySelectorAll(".preview-btn").forEach(b => {
+  b.addEventListener("click", () => doPreview(b.dataset.target));
+});
+
+async function queryStatus() {
+  try {
+    const s = await api("/status");
+    if (!s.connected) { log("status: disconnected", "err"); return; }
+    const flags = Object.entries(s.parsed || {}).filter(([,v])=>v).map(([k])=>k).join(", ") || "ok";
+    log(`~HQES: ${flags}`, flags === "ok" ? "ok" : "err");
+  } catch (e) {
+    log("status failed: " + e.message, "err");
+  }
+}
+
+$("#refresh-info").addEventListener("click", loadInfo);
+$("#query-status").addEventListener("click", queryStatus);
+
+// ---- tabs ----
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p.id === `pane-${t.dataset.tab}`));
+}));
+
+// ---- template tab ----
+function renderTemplateSelect() {
+  const sel = $("#tpl-select");
+  sel.innerHTML = "";
+  if (TEMPLATES.length === 0) {
+    sel.appendChild(el("option", { value: "" }, "(no templates)"));
+    $("#tpl-fields").innerHTML = "";
+    $("#tpl-body").textContent = "";
+    return;
+  }
+  for (const t of TEMPLATES) {
+    sel.appendChild(el("option", { value: t.name }, t.name));
+  }
+  renderTemplateFields(TEMPLATES[0]);
+  sel.value = TEMPLATES[0].name;
+}
+
+async function renderTemplateFields(tpl) {
+  const box = $("#tpl-fields");
+  box.innerHTML = "";
+  for (const f of tpl.fields) {
+    const id = `tplf-${f.name}`;
+    const labelClass = f.required ? "required" : "";
+    const def = f.default !== undefined && f.default !== null ? String(f.default) : "";
+    const help = f.description ? `<div class="field-help">${f.description}${def ? ` · default: <code>${def}</code>` : ""}</div>` : (def ? `<div class="field-help">default: <code>${def}</code></div>` : "");
+    const wrap = el("div", {},
+      el("label", { for: id, class: labelClass, html: `${f.name} <span style="color:var(--muted);font-weight:normal;">: ${f.type}</span>` }),
+      el("input", { type: "text", id, "data-field": f.name, placeholder: def })
+    );
+    wrap.insertAdjacentHTML("beforeend", help);
+    box.appendChild(wrap);
+  }
+  try {
+    const full = await api(`/templates/${tpl.name}`);
+    $("#tpl-body").textContent = full.body;
+  } catch {}
+}
+
+$("#tpl-select").addEventListener("change", () => {
+  const tpl = TEMPLATES.find(t => t.name === $("#tpl-select").value);
+  if (tpl) renderTemplateFields(tpl);
+});
+
+$("#tpl-defaults").addEventListener("click", () => {
+  const tpl = TEMPLATES.find(t => t.name === $("#tpl-select").value);
+  if (!tpl) return;
+  for (const f of tpl.fields) {
+    const inp = document.querySelector(`#tpl-fields input[data-field="${f.name}"]`);
+    if (inp && f.default !== undefined && f.default !== null) inp.value = String(f.default);
+  }
+});
+
+$("#tpl-print").addEventListener("click", async () => {
+  const tpl = TEMPLATES.find(t => t.name === $("#tpl-select").value);
+  if (!tpl) return;
+  const data = {};
+  for (const f of tpl.fields) {
+    const inp = document.querySelector(`#tpl-fields input[data-field="${f.name}"]`);
+    if (inp && inp.value !== "") data[f.name] = inp.value;
+  }
+  try {
+    const r = await api("/print/template", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ template: tpl.name, data, copies: parseInt($("#tpl-copies").value) || 1 }),
+    });
+    log(`printed template '${tpl.name}' · ${r.bytes}B × ${r.copies}`, "ok");
+  } catch (e) {
+    log("template print failed: " + e.message, "err");
+  }
+});
+
+// ---- table tab ----
+const DEFAULT_COLS = [
+  { header: "#", key: "i", width: "8mm", align: "R" },
+  { header: "Target", key: "tgt", width: "", align: "L" },
+  { header: "Cq", key: "cq", width: "14mm", align: "R" },
+];
+
+function renderCols() {
+  const tbody = $("#cols-table tbody");
+  tbody.innerHTML = "";
+  COLS.forEach((c, i) => {
+    const tr = el("tr", {});
+    ["header", "key", "width"].forEach(k => {
+      const inp = el("input", { type: "text", value: c[k] ?? "" });
+      inp.addEventListener("input", e => { c[k] = e.target.value; renderRowsHead(); });
+      tr.appendChild(el("td", {}, inp));
+    });
+    const sel = el("select", {});
+    ["L","C","R"].forEach(a => {
+      const opt = el("option", { value: a }, a);
+      if (a === c.align) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", e => { c.align = e.target.value; });
+    tr.appendChild(el("td", {}, sel));
+    const del = el("button", { class: "ghost", onclick: () => { COLS.splice(i,1); renderCols(); renderRowsHead(); renderRowsBody(); } }, "×");
+    tr.appendChild(el("td", {}, del));
+    tbody.appendChild(tr);
+  });
+}
+
+function renderRowsHead() {
+  const tr = $("#rows-head");
+  tr.innerHTML = "";
+  COLS.forEach(c => tr.appendChild(el("th", {}, c.header || c.key || "")));
+  tr.appendChild(el("th", { style: "width:36px" }, ""));
+}
+
+function renderRowsBody() {
+  const tbody = $("#rows-table tbody");
+  tbody.innerHTML = "";
+  ROWS.forEach((row, i) => {
+    const tr = el("tr", {});
+    COLS.forEach(c => {
+      const key = c.key || c.header;
+      const inp = el("input", { type: "text", value: row[key] ?? "" });
+      inp.addEventListener("input", e => { row[key] = e.target.value; });
+      tr.appendChild(el("td", {}, inp));
+    });
+    const del = el("button", { class: "ghost", onclick: () => { ROWS.splice(i,1); renderRowsBody(); } }, "×");
+    tr.appendChild(el("td", {}, del));
+    tbody.appendChild(tr);
+  });
+}
+
+let COLS = JSON.parse(JSON.stringify(DEFAULT_COLS));
+let ROWS = [
+  { i: "1", tgt: "GAPDH", cq: "21.3" },
+  { i: "2", tgt: "ACTB", cq: "22.7" },
+  { i: "3", tgt: "HPRT1", cq: "24.1" },
+];
+
+renderCols(); renderRowsHead(); renderRowsBody();
+
+$("#add-col").addEventListener("click", () => { COLS.push({ header: "Col", key: "k"+COLS.length, width: "", align: "L" }); renderCols(); renderRowsHead(); renderRowsBody(); });
+$("#add-row").addEventListener("click", () => { ROWS.push({}); renderRowsBody(); });
+$("#clear-rows").addEventListener("click", () => { ROWS = []; renderRowsBody(); });
+
+$("#tbl-print").addEventListener("click", async () => {
+  const body = {
+    title: $("#tbl-title").value,
+    columns: COLS.map(c => ({
+      header: c.header,
+      key: c.key || c.header,
+      width: c.width || null,
+      align: c.align || "L",
+    })),
+    rows: ROWS,
+    copies: parseInt($("#tbl-copies").value) || 1,
+    font_h: parseInt($("#tbl-font").value) || 22,
+    show_grid: $("#tbl-grid").value === "true",
+  };
+  try {
+    const r = await api("/print/table", {
+      method: "POST", headers: authHeaders(), body: JSON.stringify(body),
+    });
+    log(`printed table · ${r.bytes}B × ${r.copies}`, "ok");
+  } catch (e) {
+    log("table print failed: " + e.message, "err");
+  }
+});
+
+// ---- text tab ----
+$("#txt-print").addEventListener("click", async () => {
+  try {
+    const r = await api("/print/text", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({
+        text: $("#txt-text").value,
+        barcode: $("#txt-barcode").value || null,
+        font_h: parseInt($("#txt-fonth").value) || 30,
+        copies: parseInt($("#txt-copies").value) || 1,
+      }),
+    });
+    log(`printed text · ${r.bytes}B × ${r.copies}`, "ok");
+  } catch (e) {
+    log("text print failed: " + e.message, "err");
+  }
+});
+
+// ---- raw tab ----
+$("#raw-print").addEventListener("click", async () => {
+  try {
+    const r = await api("/print/raw", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ zpl: $("#raw-zpl").value, copies: parseInt($("#raw-copies").value) || 1 }),
+    });
+    log(`printed raw · ${r.bytes}B × ${r.copies}`, "ok");
+  } catch (e) {
+    log("raw print failed: " + e.message, "err");
+  }
+});
+
+// ---- upload tab ----
+$("#up-save").addEventListener("click", async () => {
+  const name = $("#up-name").value.trim();
+  if (!name) { log("name required", "err"); return; }
+  try {
+    await api(`/templates/${encodeURIComponent(name)}`, {
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ body: $("#up-body").value }),
+    });
+    log(`saved template '${name}'`, "ok");
+    await loadInfo();
+  } catch (e) {
+    log("save failed: " + e.message, "err");
+  }
+});
+
+$("#up-delete").addEventListener("click", async () => {
+  const name = $("#up-name").value.trim();
+  if (!name) { log("name required", "err"); return; }
+  if (!confirm(`Delete template '${name}'?`)) return;
+  try {
+    await api(`/templates/${encodeURIComponent(name)}`, { method: "DELETE", headers: authHeaders(false) });
+    log(`deleted template '${name}'`, "ok");
+    await loadInfo();
+  } catch (e) {
+    log("delete failed: " + e.message, "err");
+  }
+});
+
+loadInfo();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+!.env.example
+
+# local test artifacts
+test_label.zpl
+two_labels.zpl
+preview_*.png
+*.png
+
+# editor / OS junk
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,32 @@
+services:
+  print-server:
+    build: .
+    image: print-server:0.1.0
+    container_name: print-server
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - "/dev/usb/lp0:/dev/usb/lp0"
+    volumes:
+      - ./templates:/data/templates
+      - /var/lock:/var/lock
+    environment:
+      PORT: "8088"
+      LOG_LEVEL: "INFO"
+      LABEL_WIDTH_MM: "${LABEL_WIDTH_MM:-50}"
+      LABEL_HEIGHT_MM: "${LABEL_HEIGHT_MM:-30}"
+      PRINTER_DPI: "${PRINTER_DPI:-203}"
+      PRINTER_MODEL: "${PRINTER_MODEL:-Zebra ZD411-203dpi}"
+      DEVICE_PATH: "${DEVICE_PATH:-/dev/usb/lp0}"
+      LOCK_PATH: "/var/lock/zd411.lock"
+      PRINT_API_TOKEN: "${PRINT_API_TOKEN:-}"
+      TEMPLATES_DIR: "/data/templates"
+      PREVIEW_ENABLED: "${PREVIEW_ENABLED:-true}"
+      LABELARY_URL: "${LABELARY_URL:-https://api.labelary.com}"
+    # need lp group access to /dev/usb/lp0; simplest = root
+    user: "0:0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8088/healthz',timeout=2).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
