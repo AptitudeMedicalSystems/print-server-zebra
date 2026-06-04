@@ -160,8 +160,55 @@ printers:
 - 一 Pi 多 USB 打印机时 `lpN` 设备号可能换：建议 udev rule 固定（或用 `/dev/usb/by-id/...`），文档要写
 - station-v2 老 printer-service 没获 lock：与本设计无关，问题继承
 
+## Roadmap
+
+本设计是从"1 Pi 1 printer"到"1 gateway N printer"的第一步。中长期目标是把这个服务定位为 **print gateway**，让轻量客户端按需挑 gateway 发请求。
+
+### 目标拓扑
+
+```
+[Pi Zero fleet client] ──┐
+[Pi Zero fleet client] ──┼─► subscribe to ──► [print gateway A]  ──► printer 1, 2, 3
+[Pi Zero fleet client] ──┤                    [print gateway B]  ──► printer 4
+                         └─►                   [print gateway C]  ──► printer 5, 6
+                                                     │
+                                                     ▼
+                                        ZPL render / preview / route
+```
+
+### 角色定义
+
+- **Fleet client (Pi Zero)**：轻量节点，只产生**打印意图**（例如"打这个设备标签 / 这张试管标签"），不持有 ZPL/模板/打印机驱动。代码体量低 → Pi Zero 能跑。
+- **Print gateway（本服务）**：拥有完整打印机能力——
+  1. **预览**：`/preview` (Labelary 或未来本地渲染器)
+  2. **ZPL 生成**：`/print/template` `/print/table` `/print/text` 把结构化输入转 ZPL
+  3. **路由**：根据模板尺寸/dpi → 兼容的本地打印机；本地无兼容打印机时 502/404，让 client 换 gateway
+
+### Client → Gateway 关系
+
+- "Subscribe" 不一定是真的 pub/sub。最简：client 知道 **N 个 gateway URL**（配置或 mDNS 发现），启动时并发拉每个 `/info`，缓存 `printers[]` + `templates[]`。
+- 发打印请求时由 **client 决策选哪个 gateway**（按 template→gateway 兼容矩阵）。这一步在 client 侧实现，对 gateway 透明。
+- 模板存储分两层：**built-in 模板**在 gateway（出厂带 + Pi 端可改），**ad-hoc 模板**由 client 发起时随请求体带（`POST /print/raw` 已经支持）。
+
+### 为什么不把路由放到 client
+
+- 每个 client 维护一份"全 fleet 打印机能力表"成本不高（fleet 几十台 Pi 量级），但 ZPL 生成 / preview 渲染 / 模板存储留在中心 gateway 才能保证 client 轻
+- gateway 间不互相发现，互相不路由 → 单点故障域 = 单台 gateway，挂一台只影响接它的 client，不会级联
+
+### 与本期设计的关系
+
+`v0.3.0` 多 printer 数据模型是这个 roadmap 的前置条件——gateway 必须能管多 printer，client 才有"挑 gateway"的意义；模板自描述尺寸+兼容 printer 列表也直接为 client 端的"挑 gateway"逻辑供数据。
+
+### 待解决（roadmap 阶段，不在本期）
+
+- Gateway 发现机制：mDNS `_print-gateway._tcp` vs 静态清单 vs 注册中心
+- Client SDK：是否要提供一个 Python/JS 客户端库封装"多 gateway 选路"逻辑
+- Gateway 之间的能力同步：是否需要 gateway 互相 mirror 模板，还是各自独立
+- 鉴权：当前 `PRINT_API_TOKEN` 是 gateway 级单 token；多 client 场景要不要 per-client token / mTLS
+
 ## Revision History
 
 | 日期 | 变更 | 原因 |
 |---|---|---|
 | 2026-06-04 | 初版 | 用户反馈：将来一 Pi 多打印机 + 模板尺寸要能自动匹配可打印机 |
+| 2026-06-04 | 加 Roadmap | 用户给出 fleet 拓扑长期愿景：Pi Zero client subscribe 多 print gateway |
