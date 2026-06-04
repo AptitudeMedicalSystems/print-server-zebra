@@ -18,7 +18,7 @@ Prereqs on the Pi:
 
 ```bash
 GHCR_TOKEN=ghp_xxx \
-LABEL_WIDTH_MM=50.8 LABEL_HEIGHT_MM=50.8 \
+LABEL_WIDTH_MM=57.15 LABEL_HEIGHT_MM=50.8 \
   bash <(curl -fsSL https://raw.githubusercontent.com/AptitudeMedicalSystems/print-server-zebra/main/setup.sh)
 ```
 
@@ -34,7 +34,7 @@ Common per-Pi overrides:
 
 | env | default | note |
 |---|---|---|
-| `LABEL_WIDTH_MM` / `LABEL_HEIGHT_MM` | 50.8 / 50.8 | match the physical label stock |
+| `LABEL_WIDTH_MM` / `LABEL_HEIGHT_MM` | 57.15 / 50.8 | 2.25 × 2 inch; match the physical label stock |
 | `PRINTER_DPI` | 203 | 300 for ZD411-300dpi units |
 | `PRINT_SERVER_VERSION` | 0.2.0 | bump for upgrades |
 | `INSTALL_DIR` | `/home/pi/print-server` | |
@@ -46,7 +46,7 @@ git clone https://github.com/AptitudeMedicalSystems/print-server-zebra /home/pi/
 cd /home/pi/print-server
 cat > .env <<EOF
 PRINT_SERVER_VERSION=0.2.0
-LABEL_WIDTH_MM=50.8
+LABEL_WIDTH_MM=57.15
 LABEL_HEIGHT_MM=50.8
 PRINTER_DPI=203
 EOF

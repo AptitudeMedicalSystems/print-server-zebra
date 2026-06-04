@@ -13,8 +13,8 @@ HOST = os.getenv("HOST", "0.0.0.0")
 PORT = _int("PORT", 8088)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
-LABEL_WIDTH_MM = float(os.getenv("LABEL_WIDTH_MM", "50"))
-LABEL_HEIGHT_MM = float(os.getenv("LABEL_HEIGHT_MM", "30"))
+LABEL_WIDTH_MM = float(os.getenv("LABEL_WIDTH_MM", "57.15"))   # 2.25 inch
+LABEL_HEIGHT_MM = float(os.getenv("LABEL_HEIGHT_MM", "50.8"))  # 2 inch
 PRINTER_DPI = _int("PRINTER_DPI", 203)
 PRINTER_MODEL = os.getenv("PRINTER_MODEL", "Zebra ZD411-203dpi")
 CHARSET = os.getenv("CHARSET", "UTF-8")

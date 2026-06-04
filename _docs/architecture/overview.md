@@ -97,7 +97,7 @@
 | env | 默认 | 说明 |
 |---|---|---|
 | `PORT` | `8088` | HTTP 端口 |
-| `LABEL_WIDTH_MM` / `LABEL_HEIGHT_MM` | `50.8` / `50.8` | 标签物理尺寸（Pi 间可不同） |
+| `LABEL_WIDTH_MM` / `LABEL_HEIGHT_MM` | `57.15` / `50.8` | 2.25×2 inch 默认；Pi 间可不同 |
 | `PRINTER_DPI` | `203` | 决定 dots/mm 换算 |
 | `DEVICE_PATH` | `/dev/usb/lp0` | USB 字符设备路径（空 = 自动发现） |
 | `LOCK_PATH` | `/var/lock/zd411.lock` | flock 路径 |
