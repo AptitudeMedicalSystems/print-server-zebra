@@ -10,6 +10,22 @@ Lives alongside (not inside) `station-v2-docker`; the Station V2 stack has its
 own `printer-service` (patient-info only). This server is general-purpose, for
 stations and intranet callers.
 
+## Status
+
+- **Shipped on `main`**:
+  - `v0.2.0` initial release — FastAPI + templates + table + preview + UI
+  - `v0.2.1`(unreleased commit `1b73597`) default label size fix to 2.25×2 inch (456×406 dots)
+- **In flight on `design/multi-printer`**:
+  - Design doc for multi-printer + template size auto-match
+    (`_docs/design/multi_printer.md`)
+  - Implementation plan (`_docs/plan/multi_printer_plan.md`) — targets `v0.3.0`
+- **Deployed**: 1× Pi (`qwh-pi5-c.local:8088`, ZD411 @ 203 dpi, 2.25×2 inch stock)
+- **Pending follow-ups** (from `plan/initial_release_plan.md`):
+  - Rotate fleet PAT to bot account, bake into pi-gen base image
+  - station-v2 `printer-service` either grabs the same flock or migrates to HTTP
+  - CI checks on `main` push (currently only release tags trigger Actions)
+  - Local ZPL renderer to replace Labelary for PII labels
+
 ## Tech Stack
 
 - Python 3.11 (slim image)
