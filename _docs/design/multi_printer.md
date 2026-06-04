@@ -190,6 +190,30 @@ printers:
 - 发打印请求时由 **client 决策选哪个 gateway**（按 template→gateway 兼容矩阵）。这一步在 client 侧实现，对 gateway 透明。
 - 模板存储分两层：**built-in 模板**在 gateway（出厂带 + Pi 端可改），**ad-hoc 模板**由 client 发起时随请求体带（`POST /print/raw` 已经支持）。
 
+### Gateway 部署位置：LAN 或 Internet
+
+Gateway 不绑死局域网——根据业务可以是：
+
+| 部署 | 适用场景 | 客户端访问方式 |
+|---|---|---|
+| **LAN gateway**（当前 qwh-pi5-c） | 同一办公室/楼层内的打印 | mDNS 发现或局域网静态 IP |
+| **Internet gateway**（VPS / 公司云服务器） | 跨站点共享打印机；client 不在同一 LAN | 公网域名 + TLS + token；客户端配 URL |
+
+混合也行：同一 client 同时订阅 1 个 LAN gateway + 1 个 internet gateway。client 端选路逻辑不区分——都是"一个 URL + 一份 `/info`"。
+
+### Pi Zero 单向通信约束
+
+**Pi Zero client 只发起出向请求，不接受入向连接**（NAT 后 / 防火墙后 / 漫游场景）。这给整个架构定了几条铁律：
+
+1. **Gateway 不能回调 client**——没有 webhook、没有反向连接。状态由 client 自己**轮询** `/status` 或 `/jobs/<id>`（若引入异步队列）
+2. **打印请求必须同步返回结果**（成功 / 失败 / 错误码），client 不依赖后续推送
+3. **TLS 终止在 gateway**——client 验证证书；不需要 mTLS（client 没固定 IP，证书签发难管理），用 `PRINT_API_TOKEN`/per-client token 鉴权
+4. **发现机制**：
+   - LAN gateway → mDNS（`_print-gateway._tcp`）
+   - Internet gateway → 静态 URL 列表（写进 client 配置文件 / 环境变量）
+   - **不**做反向注册（client 不暴露端口给 gateway 来连）
+5. **网络中断容忍**：client 应缓存最后一次拉到的 gateway `/info`，离线时仍能本地判断"哪些 gateway 此前可用"，但实际发请求时直接试发即可——失败就 fail-fast 让上层重试或换 gateway
+
 ### 为什么不把路由放到 client
 
 - 每个 client 维护一份"全 fleet 打印机能力表"成本不高（fleet 几十台 Pi 量级），但 ZPL 生成 / preview 渲染 / 模板存储留在中心 gateway 才能保证 client 轻
@@ -201,10 +225,12 @@ printers:
 
 ### 待解决（roadmap 阶段，不在本期）
 
-- Gateway 发现机制：mDNS `_print-gateway._tcp` vs 静态清单 vs 注册中心
-- Client SDK：是否要提供一个 Python/JS 客户端库封装"多 gateway 选路"逻辑
+- LAN gateway 用 mDNS，Internet gateway 用静态清单——是否需要一个统一的"gateway 目录服务"？
+- Client SDK：是否要提供一个 Python/JS 客户端库封装"多 gateway 选路 + 单向轮询"逻辑
 - Gateway 之间的能力同步：是否需要 gateway 互相 mirror 模板，还是各自独立
-- 鉴权：当前 `PRINT_API_TOKEN` 是 gateway 级单 token；多 client 场景要不要 per-client token / mTLS
+- 鉴权：当前 `PRINT_API_TOKEN` 是 gateway 级单 token；多 client + Internet 部署要不要 per-client token
+- TLS：Internet 部署时证书签发/续期路径（Let's Encrypt + 反代 / 自签 + 信任根）
+- 异步打印队列：如果将来支持"client 提交后立刻断开，回头查结果"，需要 `POST /jobs` + `GET /jobs/<id>`，仍然是 client 主动轮询
 
 ## Revision History
 
@@ -212,3 +238,4 @@ printers:
 |---|---|---|
 | 2026-06-04 | 初版 | 用户反馈：将来一 Pi 多打印机 + 模板尺寸要能自动匹配可打印机 |
 | 2026-06-04 | 加 Roadmap | 用户给出 fleet 拓扑长期愿景：Pi Zero client subscribe 多 print gateway |
+| 2026-06-04 | Roadmap 补部署位置 + 单向通信约束 | gateway 可在 LAN 也可在 internet；Pi Zero 只出向不接入 |
