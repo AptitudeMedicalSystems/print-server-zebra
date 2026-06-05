@@ -1,0 +1,39 @@
+# Station V2 single-file deploy variant.
+# Label dimensions and printer model are hardcoded for the ZD411 fleet, so
+# this file works standalone (no .env required). Attached as the release
+# asset on each tag push (see .github/workflows/release.yml).
+#
+# Usage on a fresh Pi:
+#   curl -LO https://github.com/AptitudeMedicalSystems/print-server-zebra/releases/latest/download/docker-compose.yml
+#   docker compose up -d
+
+services:
+  print-server:
+    image: ghcr.io/aptitudemedicalsystems/print-server-zebra:0.3.0
+    pull_policy: always
+    container_name: print-server
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - "/dev/usb/lp0:/dev/usb/lp0"
+    volumes:
+      - /var/lock:/var/lock
+    environment:
+      PORT: "8088"
+      LOG_LEVEL: "INFO"
+      LABEL_WIDTH_MM: "57.15"
+      LABEL_HEIGHT_MM: "50.8"
+      PRINTER_DPI: "203"
+      PRINTER_MODEL: "Zebra ZD411-203dpi"
+      DEVICE_PATH: "/dev/usb/lp0"
+      LOCK_PATH: "/var/lock/zd411.lock"
+      PRINT_API_TOKEN: ""
+      TEMPLATES_DIR: "/data/templates"
+      PREVIEW_ENABLED: "true"
+      LABELARY_URL: "https://api.labelary.com"
+    user: "0:0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8088/healthz',timeout=2).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
