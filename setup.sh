@@ -6,7 +6,7 @@
 #
 # Optional env:
 #   GHCR_USER             GitHub username for the token (default: QIUWEIHAO)
-#   PRINT_SERVER_VERSION  image tag (default: 0.2.0)
+#   PRINT_SERVER_VERSION  image tag (default: 0.3.0)
 #   LABEL_WIDTH_MM        label width  (default: 57.15 = 2.25 inch)
 #   LABEL_HEIGHT_MM       label height (default: 50.8  = 2 inch)
 #   PRINTER_DPI           203 or 300   (default: 203)
@@ -16,7 +16,7 @@ set -euo pipefail
 
 GHCR_TOKEN="${GHCR_TOKEN:-}"
 GHCR_USER="${GHCR_USER:-QIUWEIHAO}"
-PRINT_SERVER_VERSION="${PRINT_SERVER_VERSION:-0.2.0}"
+PRINT_SERVER_VERSION="${PRINT_SERVER_VERSION:-0.3.0}"
 LABEL_WIDTH_MM="${LABEL_WIDTH_MM:-57.15}"
 LABEL_HEIGHT_MM="${LABEL_HEIGHT_MM:-50.8}"
 PRINTER_DPI="${PRINTER_DPI:-203}"

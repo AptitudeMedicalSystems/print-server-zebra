@@ -1,6 +1,6 @@
 services:
   print-server:
-    image: ghcr.io/aptitudemedicalsystems/print-server-zebra:${PRINT_SERVER_VERSION:-0.2.0}
+    image: ghcr.io/aptitudemedicalsystems/print-server-zebra:${PRINT_SERVER_VERSION:-0.3.0}
     pull_policy: always
     container_name: print-server
     restart: unless-stopped
@@ -8,7 +8,9 @@ services:
     devices:
       - "/dev/usb/lp0:/dev/usb/lp0"
     volumes:
-      - ./templates:/data/templates
+      # templates are baked into the image at /data/templates.
+      # uncomment to override with a host directory (for dev/customization):
+      # - ./templates:/data/templates
       - /var/lock:/var/lock
     environment:
       PORT: "8088"

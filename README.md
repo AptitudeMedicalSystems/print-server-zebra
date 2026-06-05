@@ -128,7 +128,9 @@ If `PRINT_API_TOKEN` env is set, all print/write endpoints require:
 
 `{{var}}` placeholders are auto-discovered if no `@field` lines are present.
 
-Built-in templates (in `templates/`):
+Built-in templates (in `templates/`) — shipped inside the image at
+`/data/templates`, no host volume needed. Override at runtime by bind-mounting
+your own directory to `/data/templates` (see `docker-compose.yml`).
 - `zd411_test` — printer self-test (fonts / Code128 / QR / specs)
 - `station_v2` — Station V2 device label (SN + barcode + DUID + MID + URL)
 - `sample_label` — basic title/code/note example
